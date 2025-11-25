@@ -27,7 +27,8 @@ private:
 
     bool showMenu;          // Menú inicial
     bool introPlaying;      // Reproducir intro
-
+    bool gameOver;
+    bool youWin;
 
     // Juego
     Maze maze;
@@ -53,9 +54,6 @@ private:
 
     // Vidas
     int lives;
-    bool gameOver;
-
-    // Funciones utilitarias
     void loadDefaultMaze();
     void checkEatDot();
     void checkGhostCollisions();

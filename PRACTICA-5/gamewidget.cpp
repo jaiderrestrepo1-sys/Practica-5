@@ -13,14 +13,17 @@ GameWidget::GameWidget(QWidget *parent)
     waka(nullptr), wakaOutput(nullptr),
     intro(nullptr), introOutput(nullptr),
     death(nullptr), deathOutput(nullptr),
-    lives(3), gameOver(false),
+    lives(3), gameOver(false),youWin(false),
     showMenu(true), introPlaying(false)
+
 {
     setWindowTitle("Pac-Man - Práctica 5");
     loadDefaultMaze();
 
     pacman.r = 1; pacman.c = 1;
-    ghostRed.r = 9; ghostRed.c = maze.cols - 2;
+    ghostRed.r = 7;
+    ghostRed.c = 9;
+
 
     waka = new QMediaPlayer(this);
     wakaOutput = new QAudioOutput(this);
@@ -163,7 +166,23 @@ void GameWidget::paintEvent(QPaintEvent *)
         p.drawText(rect(), Qt::AlignCenter,
                    "GAME OVER\nPresiona R para reiniciar");
     }
+
+    if (youWin) {
+        QFont f2 = p.font();
+        f2.setPointSize(28);
+        f2.setBold(true);
+        p.setFont(f2);
+        p.setPen(Qt::yellow);
+
+        p.drawText(rect(), Qt::AlignCenter,
+                   "FELICIDADES, GANASTE!\n\nPresiona R para reiniciar");
+
+        return;
+    }
+
 }
+
+
 
 
 void GameWidget::keyPressEvent(QKeyEvent *event)
@@ -182,6 +201,15 @@ void GameWidget::keyPressEvent(QKeyEvent *event)
         }
         return;
     }
+
+    // GANASTE
+    if (youWin) {
+        if (event->key() == Qt::Key_R) {
+            resetGame();
+        }
+        return;
+    }
+
 
     if (introPlaying)
         return;
@@ -218,6 +246,26 @@ void GameWidget::tick()
     checkEatDot();
     checkGhostCollisions();
 
+    // --------------------------
+    // DETECTAR SI GANÓ
+    // --------------------------
+    bool anyDot = false;
+    for (int r = 0; r < maze.rows; r++) {
+        for (int c = 0; c < maze.cols; c++) {
+            if (maze.grid[r][c] == 1) {
+                anyDot = true;
+                break;
+            }
+        }
+        if (anyDot) break;
+    }
+
+    if (!anyDot) {
+        youWin = true;
+        timer.stop();
+    }
+
+
     update();
 }
 
@@ -249,7 +297,9 @@ void GameWidget::checkGhostCollisions()
 void GameWidget::resetPositions()
 {
     pacman.r=1; pacman.c=1; pacman.dirR=0; pacman.dirC=0;
-    ghostRed.r=9; ghostRed.c=maze.cols-2;
+    ghostRed.r = 7;
+    ghostRed.c = 9;
+
 }
 
 void GameWidget::resetGame()
@@ -257,6 +307,7 @@ void GameWidget::resetGame()
     score = 0;
     lives = 3;
     gameOver = false;
+    youWin = false;
     showMenu = true;
     introPlaying = false;
 
