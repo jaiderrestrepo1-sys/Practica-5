@@ -24,9 +24,15 @@ private slots:
     void tick();
 
 private:
+
+    bool showMenu;          // Menú inicial
+    bool introPlaying;      // Reproducir intro
+
+
     // Juego
     Maze maze;
     Pacman pacman;
+    Ghost ghostRed;
     QTimer timer;
     int score;
     int cellSize;
@@ -35,27 +41,29 @@ private:
     bool mouthOpen;
     int mouthToggleCounter;
 
+    // Sonidos
     QMediaPlayer *waka;
     QAudioOutput *wakaOutput;
+
     QMediaPlayer *intro;
     QAudioOutput *introOutput;
+
     QMediaPlayer *death;
     QAudioOutput *deathOutput;
-
-    // Fantasma(s)
-    Ghost ghostRed;
 
     // Vidas
     int lives;
     bool gameOver;
-    void resetPositions();
-    void resetGame();
 
-    // Funciones util
+    // Funciones utilitarias
     void loadDefaultMaze();
     void checkEatDot();
     void checkGhostCollisions();
 
+    void resetPositions();
+    void resetGame();
+
+    // Sonidos
     void playIntro();
     void playWaka();
     void playDeath();

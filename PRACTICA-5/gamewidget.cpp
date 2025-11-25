@@ -6,23 +6,21 @@
 
 GameWidget::GameWidget(QWidget *parent)
     : QWidget(parent),
-    maze(), pacman(), timer(this),
+    maze(), pacman(), ghostRed(),
+    timer(this),
     score(0), cellSize(24),
     mouthOpen(true), mouthToggleCounter(0),
     waka(nullptr), wakaOutput(nullptr),
     intro(nullptr), introOutput(nullptr),
     death(nullptr), deathOutput(nullptr),
-    ghostRed(), lives(3), gameOver(false)
+    lives(3), gameOver(false),
+    showMenu(true), introPlaying(false)
 {
     setWindowTitle("Pac-Man - Práctica 5");
     loadDefaultMaze();
 
-
     pacman.r = 1; pacman.c = 1;
-    pacman.dirR = 0; pacman.dirC = 0;
-
     ghostRed.r = 9; ghostRed.c = maze.cols - 2;
-    ghostRed.dirR = 0; ghostRed.dirC = 0;
 
     waka = new QMediaPlayer(this);
     wakaOutput = new QAudioOutput(this);
@@ -42,8 +40,12 @@ GameWidget::GameWidget(QWidget *parent)
     death->setSource(QUrl::fromLocalFile("sounds/death.wav"));
     deathOutput->setVolume(0.9);
 
-    // reproducir intro al empezar
-    playIntro();
+    connect(intro, &QMediaPlayer::playbackStateChanged, this,
+            [=](QMediaPlayer::PlaybackState s) {
+                if (introPlaying && s == QMediaPlayer::StoppedState) {
+                    introPlaying = false;
+                }
+            });
 
     connect(&timer, &QTimer::timeout, this, &GameWidget::tick);
     timer.start(140);
@@ -88,117 +90,122 @@ void GameWidget::loadDefaultMaze()
     maze.setGrid(grid, cellSize);
 }
 
-void GameWidget::paintEvent(QPaintEvent * /*event*/)
+void GameWidget::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
 
-    // fondo
     p.fillRect(rect(), Qt::black);
 
-    // laberinto y puntos
-    for (int r=0; r<maze.rows; ++r) {
-        for (int c=0; c<maze.cols; ++c) {
-            int x = c * cellSize;
-            int y = r * cellSize;
-            if (maze.grid[r][c] == 2) {
-                p.fillRect(x, y, cellSize, cellSize, Qt::blue);
-            } else if (maze.grid[r][c] == 1) {
-                int dotSize = std::max(2, cellSize/6);
-                int cx = x + cellSize/2;
-                int cy = y + cellSize/2;
+    for (int r=0; r<maze.rows; r++){
+        for (int c=0; c<maze.cols; c++){
+            int x=c*cellSize, y=r*cellSize;
+            if (maze.grid[r][c]==2)
+                p.fillRect(x,y,cellSize,cellSize,Qt::blue);
+            else if (maze.grid[r][c]==1){
                 p.setBrush(Qt::white);
                 p.setPen(Qt::NoPen);
-                p.drawEllipse(cx - dotSize/2, cy - dotSize/2, dotSize, dotSize);
-                p.setPen(Qt::NoPen);
-                p.setBrush(Qt::NoBrush);
+                p.drawEllipse(x+cellSize/2-3, y+cellSize/2-3, 6,6);
             }
         }
     }
 
-    // fantasma rojo
-    {
-        int gx = ghostRed.c * cellSize;
-        int gy = ghostRed.r * cellSize;
-        int margin = 2;
-        QRect gRect(gx + margin, gy + margin, cellSize - 2*margin, cellSize - 2*margin);
-        p.setPen(Qt::NoPen);
-        p.setBrush(Qt::red);
-        p.drawEllipse(gRect);
-    }
+    // Fantasma
+    p.setBrush(Qt::red);
+    p.setPen(Qt::NoPen);
+    p.drawEllipse(ghostRed.c*cellSize+3, ghostRed.r*cellSize+3,
+                  cellSize-6, cellSize-6);
 
-    // pacman con animacion de boca
     int px = pacman.c * cellSize;
     int py = pacman.r * cellSize;
-    int margin = 2;
-    QRect pacRect(px + margin, py + margin, cellSize - 2*margin, cellSize - 2*margin);
 
     int startAngle = 330*16;
     int spanAngle = mouthOpen ? 240*16 : 360*16;
-    if (pacman.dirR == 0 && pacman.dirC == 1) { // derecha
-        startAngle = mouthOpen ? 330*16 : 0;
-    } else if (pacman.dirR == 0 && pacman.dirC == -1) { // izquierda
-        startAngle = mouthOpen ? 150*16 : 0;
-    } else if (pacman.dirR == -1 && pacman.dirC == 0) { // arriba
-        startAngle = mouthOpen ? 210*16 : 0;
-    } else if (pacman.dirR == 1 && pacman.dirC == 0) { // abajo
-        startAngle = mouthOpen ? 30*16 : 0;
-    } else {
-        startAngle = mouthOpen ? 330*16 : 0;
-    }
+
+    if (pacman.dirR==0 && pacman.dirC==1) startAngle=330*16;
+    else if (pacman.dirR==0 && pacman.dirC==-1) startAngle=150*16;
+    else if (pacman.dirR==-1 && pacman.dirC==0) startAngle=210*16;
+    else if (pacman.dirR==1 && pacman.dirC==0) startAngle=30*16;
 
     p.setBrush(Qt::yellow);
-    p.setPen(Qt::NoPen);
-    p.drawPie(pacRect, startAngle, spanAngle);
+    p.drawPie(px+3, py+3, cellSize-6, cellSize-6, startAngle, spanAngle);
 
-    // score y vidas
+    // Score y vidas
     p.setPen(Qt::white);
     QFont f = p.font();
     f.setPointSize(12);
     p.setFont(f);
-    p.drawText(4, height() - 18, QString("Score: %1").arg(score));
-    p.drawText(120, height() - 18, QString("Lives: %1").arg(lives));
 
-    // si game over: mensaje grande
-    if (gameOver) {
+    p.drawText(4, height()-18, QString("Score: %1").arg(score));
+    p.drawText(120, height()-18, QString("Lives: %1").arg(lives));
+
+    if (showMenu) {
         QFont f2 = p.font();
+        f2.setPointSize(30);
+        f2.setBold(true);
+
+        p.setFont(f2);
+        p.setPen(Qt::yellow);
+
+        // Fondo semitransparente opcional
+        p.fillRect(rect(), QColor(0,0,0,180));
+
+        p.drawText(rect(), Qt::AlignCenter,
+                   "PACMAN\n\nPresiona R para iniciar");
+    }
+
+    if (gameOver){
+        QFont f2=f;
         f2.setPointSize(28);
         f2.setBold(true);
         p.setFont(f2);
         p.setPen(Qt::yellow);
-        p.drawText(rect(), Qt::AlignCenter, "GAME OVER\nPress R to restart");
+        p.drawText(rect(), Qt::AlignCenter,
+                   "GAME OVER\nPresiona R para reiniciar");
     }
 }
 
+
 void GameWidget::keyPressEvent(QKeyEvent *event)
 {
-    if (gameOver) {
-        if (event->key() == Qt::Key_R) {
+    // MENÚ INICIAL
+    if (showMenu && event->key()==Qt::Key_R){
+        showMenu = false;
+        introPlaying = true;
+        playIntro();
+        return;
+    }
+    // GAME OVER
+    if (gameOver){
+        if (event->key()==Qt::Key_R){
             resetGame();
-            return;
-        } else {
-            return;
         }
+        return;
     }
 
-    if (event->key() == Qt::Key_Z)       { pacman.setDirection(1, 0); } // abajo
-    else if (event->key() == Qt::Key_D)  { pacman.setDirection(0, 1); } // derecha
-    else if (event->key() == Qt::Key_S)  { pacman.setDirection(-1, 0); } // arriba
-    else if (event->key() == Qt::Key_A)  { pacman.setDirection(0, -1); } // izquierda
-    else if (event->key() == Qt::Key_Up)    { pacman.setDirection(-1,0); }
-    else if (event->key() == Qt::Key_Down)  { pacman.setDirection(1,0); }
-    else if (event->key() == Qt::Key_Left)  { pacman.setDirection(0,-1); }
-    else if (event->key() == Qt::Key_Right) { pacman.setDirection(0,1); }
+    if (introPlaying)
+        return;
 
-    QWidget::keyPressEvent(event);
+    // Movimiento Pacman
+    if (event->key() == Qt::Key_Z) pacman.setDirection(1, 0);
+    else if (event->key() == Qt::Key_D) pacman.setDirection(0, 1);
+    else if (event->key() == Qt::Key_S) pacman.setDirection(-1, 0);
+    else if (event->key() == Qt::Key_A) pacman.setDirection(0, -1);
+
+    else if (event->key() == Qt::Key_Up) pacman.setDirection(-1,0);
+    else if (event->key() == Qt::Key_Down) pacman.setDirection(1,0);
+    else if (event->key() == Qt::Key_Left) pacman.setDirection(0,-1);
+    else if (event->key() == Qt::Key_Right) pacman.setDirection(0,1);
 }
 
 void GameWidget::tick()
 {
-    if (gameOver) return;
+    if (showMenu || gameOver) return;
+
+    if (introPlaying) return;
 
     mouthToggleCounter++;
-    if (mouthToggleCounter >= 2) {
+    if (mouthToggleCounter >= 2){
         mouthOpen = !mouthOpen;
         mouthToggleCounter = 0;
     }
@@ -206,13 +213,9 @@ void GameWidget::tick()
     pacman.tryMove(maze);
     pacman.applyWrap(maze.cols);
 
-    // mover fantasma
     ghostRed.randomStep(maze);
 
-    // comprobar recolección de puntos
     checkEatDot();
-
-    // colisiones con fantasma
     checkGhostCollisions();
 
     update();
@@ -220,8 +223,8 @@ void GameWidget::tick()
 
 void GameWidget::checkEatDot()
 {
-    if (maze.inBounds(pacman.r, pacman.c) && maze.hasDot(pacman.r, pacman.c)) {
-        maze.eatDot(pacman.r, pacman.c);
+    if (maze.inBounds(pacman.r,pacman.c) && maze.hasDot(pacman.r,pacman.c)){
+        maze.eatDot(pacman.r,pacman.c);
         score += 10;
         playWaka();
     }
@@ -229,16 +232,13 @@ void GameWidget::checkEatDot()
 
 void GameWidget::checkGhostCollisions()
 {
-    if (pacman.r == ghostRed.r && pacman.c == ghostRed.c) {
-
+    if (pacman.r==ghostRed.r && pacman.c==ghostRed.c){
         lives--;
         playDeath();
 
-        if (lives <= 0) {
-            // game over
+        if (lives<=0){
             gameOver = true;
             timer.stop();
-            if (waka->playbackState() == QMediaPlayer::PlayingState) waka->stop();
             return;
         } else {
             resetPositions();
@@ -248,9 +248,8 @@ void GameWidget::checkGhostCollisions()
 
 void GameWidget::resetPositions()
 {
-
-    pacman.r = 1; pacman.c = 1; pacman.dirR = 0; pacman.dirC = 0;
-    ghostRed.r = 9; ghostRed.c = maze.cols - 2; ghostRed.dirR = 0; ghostRed.dirC = 0;
+    pacman.r=1; pacman.c=1; pacman.dirR=0; pacman.dirC=0;
+    ghostRed.r=9; ghostRed.c=maze.cols-2;
 }
 
 void GameWidget::resetGame()
@@ -258,32 +257,32 @@ void GameWidget::resetGame()
     score = 0;
     lives = 3;
     gameOver = false;
-    loadDefaultMaze();
+    showMenu = true;
+    introPlaying = false;
+
     resetPositions();
-    playIntro();
+    loadDefaultMaze();
+
     timer.start(140);
     update();
 }
 
 void GameWidget::playIntro()
 {
-    if (!intro) return;
+    introPlaying = true;
     intro->stop();
     intro->play();
 }
 
 void GameWidget::playWaka()
 {
-    if (!waka) return;
-    if (waka->playbackState() == QMediaPlayer::PlayingState) {
+    if (waka->playbackState()==QMediaPlayer::PlayingState)
         waka->stop();
-    }
     waka->play();
 }
 
 void GameWidget::playDeath()
 {
-    if (!death) return;
     death->stop();
     death->play();
 }
