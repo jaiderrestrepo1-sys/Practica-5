@@ -14,6 +14,21 @@ GameWidget::GameWidget(QWidget *parent)
     pacman.c = 1;
     pacman.dirR = 0; pacman.dirC = 0;
 
+    //sonido
+    waka = new QMediaPlayer(this);
+    wakaOutput = new QAudioOutput(this);
+    waka->setAudioOutput(wakaOutput);
+    waka->setSource(QUrl::fromLocalFile("sounds/waka.wav"));
+    wakaOutput->setVolume(0.4);
+
+    intro = new QMediaPlayer(this);
+    introOutput = new QAudioOutput(this);
+    intro->setAudioOutput(introOutput);
+    intro->setSource(QUrl::fromLocalFile("sounds/intro.wav"));
+    introOutput->setVolume(0.8);
+
+    playIntro();
+
 
     connect(&timer, &QTimer::timeout, this, &GameWidget::tick);
     timer.start(140);
@@ -146,7 +161,29 @@ void GameWidget::tick()
 void GameWidget::checkEatDot()
 {
     if (maze.inBounds(pacman.r, pacman.c) && maze.hasDot(pacman.r, pacman.c)) {
+
         maze.eatDot(pacman.r, pacman.c);
         score += 10;
+
+        playWaka();
     }
 }
+
+//sonidos
+
+void GameWidget::playIntro()
+{
+    intro->stop();
+    intro->play();
+}
+
+void GameWidget::playWaka()
+{
+    if (waka->playbackState() == QMediaPlayer::PlayingState)
+        return;
+
+    waka->stop();
+    waka->play();
+}
+
+
