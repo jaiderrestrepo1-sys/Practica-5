@@ -25,8 +25,8 @@ private slots:
 
 private:
 
-    bool showMenu;          // Menú inicial
-    bool introPlaying;      // Reproducir intro
+    bool showMenu;
+    bool introPlaying;
     bool gameOver;
     bool youWin;
 
@@ -34,15 +34,17 @@ private:
     Maze maze;
     Pacman pacman;
     Ghost ghostRed;
+    Ghost ghostPink;
+    Ghost ghostBlue;
     QTimer timer;
     int score;
     int cellSize;
 
-    // Animación boca
+    // ANIMACIÓN BOCA
     bool mouthOpen;
     int mouthToggleCounter;
 
-    // Sonidos
+    // SONIDOS
     QMediaPlayer *waka;
     QAudioOutput *wakaOutput;
 
@@ -52,7 +54,7 @@ private:
     QMediaPlayer *death;
     QAudioOutput *deathOutput;
 
-    // Vidas
+    // VIDAS
     int lives;
     void loadDefaultMaze();
     void checkEatDot();
@@ -61,7 +63,7 @@ private:
     void resetPositions();
     void resetGame();
 
-    // Sonidos
+    // SONIDOS
     void playIntro();
     void playWaka();
     void playDeath();

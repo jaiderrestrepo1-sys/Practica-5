@@ -23,12 +23,16 @@ GameWidget::GameWidget(QWidget *parent)
     pacman.r = 1; pacman.c = 1;
     ghostRed.r = 7;
     ghostRed.c = 9;
+    ghostRed.r = 7;     ghostRed.c = 9;
+    ghostPink.r = 7;    ghostPink.c = 8;
+    ghostBlue.r = 7;    ghostBlue.c = 10;
+
 
 
     waka = new QMediaPlayer(this);
     wakaOutput = new QAudioOutput(this);
     waka->setAudioOutput(wakaOutput);
-    waka->setSource(QUrl::fromLocalFile("sounds/waka.wav"));
+    waka->setSource(QUrl::fromLocalFile("sounds/wakaw.wav"));
     wakaOutput->setVolume(0.35);
 
     intro = new QMediaPlayer(this);
@@ -113,11 +117,22 @@ void GameWidget::paintEvent(QPaintEvent *)
         }
     }
 
-    // Fantasma
+    // FANTASMAS
     p.setBrush(Qt::red);
     p.setPen(Qt::NoPen);
+    //ROJO
     p.drawEllipse(ghostRed.c*cellSize+3, ghostRed.r*cellSize+3,
                   cellSize-6, cellSize-6);
+    // ROSADO
+    p.setBrush(QColor(255, 105, 180));
+    p.drawEllipse(ghostPink.c * cellSize + 3, ghostPink.r * cellSize + 3,
+                  cellSize - 6, cellSize - 6);
+
+    // AZUL
+    p.setBrush(QColor(0, 180, 255));
+    p.drawEllipse(ghostBlue.c * cellSize + 3, ghostBlue.r * cellSize + 3,
+                  cellSize - 6, cellSize - 6);
+
 
     int px = pacman.c * cellSize;
     int py = pacman.r * cellSize;
@@ -150,7 +165,6 @@ void GameWidget::paintEvent(QPaintEvent *)
         p.setFont(f2);
         p.setPen(Qt::yellow);
 
-        // Fondo semitransparente opcional
         p.fillRect(rect(), QColor(0,0,0,180));
 
         p.drawText(rect(), Qt::AlignCenter,
@@ -214,7 +228,7 @@ void GameWidget::keyPressEvent(QKeyEvent *event)
     if (introPlaying)
         return;
 
-    // Movimiento Pacman
+    // MOVIMIENTO PACMAN
     if (event->key() == Qt::Key_Z) pacman.setDirection(1, 0);
     else if (event->key() == Qt::Key_D) pacman.setDirection(0, 1);
     else if (event->key() == Qt::Key_S) pacman.setDirection(-1, 0);
@@ -242,13 +256,15 @@ void GameWidget::tick()
     pacman.applyWrap(maze.cols);
 
     ghostRed.randomStep(maze);
+    ghostPink.randomStep(maze);
+    ghostBlue.randomStep(maze);
+
+
 
     checkEatDot();
     checkGhostCollisions();
 
-    // --------------------------
-    // DETECTAR SI GANÓ
-    // --------------------------
+    // DETECTAR SI GANO
     bool anyDot = false;
     for (int r = 0; r < maze.rows; r++) {
         for (int c = 0; c < maze.cols; c++) {
@@ -280,7 +296,10 @@ void GameWidget::checkEatDot()
 
 void GameWidget::checkGhostCollisions()
 {
-    if (pacman.r==ghostRed.r && pacman.c==ghostRed.c){
+    if ((pacman.r == ghostRed.r && pacman.c == ghostRed.c) ||
+        (pacman.r == ghostPink.r && pacman.c == ghostPink.c) ||
+        (pacman.r == ghostBlue.r && pacman.c == ghostBlue.c))
+    {
         lives--;
         playDeath();
 
@@ -297,8 +316,9 @@ void GameWidget::checkGhostCollisions()
 void GameWidget::resetPositions()
 {
     pacman.r=1; pacman.c=1; pacman.dirR=0; pacman.dirC=0;
-    ghostRed.r = 7;
-    ghostRed.c = 9;
+    ghostRed.r = 7;  ghostRed.c = 9;
+    ghostPink.r = 7; ghostPink.c = 8;
+    ghostBlue.r = 7; ghostBlue.c = 10;
 
 }
 

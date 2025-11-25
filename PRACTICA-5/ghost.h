@@ -13,7 +13,6 @@ struct Ghost {
     void randomStep(const class Maze &m) {
         static std::mt19937 rng((unsigned)std::random_device{}());
         std::uniform_int_distribution<int> d(0,3);
-        int attempts = 0;
         if (dirR == 0 && dirC == 0) {
             int choice = d(rng);
             switch(choice) {
@@ -28,7 +27,6 @@ struct Ghost {
         if (nc < 0) nc = m.wrapX(nc);
         if (nc >= m.cols) nc = m.wrapX(nc);
         if (!m.inBounds(nr, nc) || m.isWall(nr, nc)) {
-            // elegir nueva direccion distinta
             bool moved = false;
             for (int i = 0; i < 4 && !moved; ++i) {
                 int choice = d(rng);

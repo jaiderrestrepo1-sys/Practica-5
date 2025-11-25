@@ -11,7 +11,6 @@ QT += widgets multimedia
 
 SOURCES += \
     gamewidget.cpp \
-    ghost.cpp \
     main.cpp \
     mainwindow.cpp \
     maze.cpp \
