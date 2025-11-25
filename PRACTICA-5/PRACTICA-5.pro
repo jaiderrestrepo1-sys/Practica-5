@@ -11,6 +11,7 @@ QT += widgets multimedia
 
 SOURCES += \
     gamewidget.cpp \
+    ghost.cpp \
     main.cpp \
     mainwindow.cpp \
     maze.cpp \
@@ -18,6 +19,7 @@ SOURCES += \
 
 HEADERS += \
     gamewidget.h \
+    ghost.h \
     mainwindow.h \
     maze.h \
     pacman.h

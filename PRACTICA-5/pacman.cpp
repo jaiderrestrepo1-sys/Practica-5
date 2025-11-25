@@ -10,10 +10,8 @@ void Pacman::tryMove(const Maze &m) {
     if (dirR == 0 && dirC == 0) return;
     int nr = r + dirR;
     int nc = c + dirC;
-    // wrap horizontally (teleport)
     if (nc < 0) nc = m.wrapX(nc);
     if (nc >= m.cols) nc = m.wrapX(nc);
-    // check bounds for rows
     if (!m.inBounds(nr, nc)) return;
     if (!m.isWall(nr, nc)) {
         r = nr;
